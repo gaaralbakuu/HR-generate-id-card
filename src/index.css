@@ -127,3 +127,21 @@
     @apply font-sans;
     }
 }
+
+@layer utilities {
+    .page-break-after {
+        page-break-after: always;
+        break-after: page;
+    }
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 0;
+    }
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
