@@ -127,3 +127,78 @@
     @apply font-sans;
     }
 }
+
+
+/* Print Styles */
+@media print {
+
+  body,
+  html,
+  #root {
+    width: 100% !important;
+    height: 100% !important;
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  #app-container {
+    height: unset !important;
+  }
+
+  /* Hide non-printable elements */
+  .hidden-on-print {
+    display: none !important;
+  }
+
+  /* Show and style printable area */
+  #printable-area {
+    display: block !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0mm !important;
+    background: white !important;
+    box-shadow: none !important;
+    position: static !important;
+    
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+
+  #printable-area > div {
+    /* page-break-after: always;
+    page-break-inside: avoid; */
+  }
+
+  /* Each A4 page */
+  #printable-area > div > div {
+    width: 210mm !important;
+    height: 297mm !important;
+    padding: 13mm !important;
+    /* padding-left: 0mm !important;
+    padding-right: 0mm !important; */
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+    display: flex !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  #a4-preview-container{
+    overflow: unset !important;
+  }
+
+  #a4-preview-container > div {
+    padding: 0 !important;
+  }
+
+  /* Page setup */
+  @page {
+    size: A4;
+    /* margin narrow print  */
+    margin: 0; 
+    
+  }
+}

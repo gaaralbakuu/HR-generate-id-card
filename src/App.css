@@ -35,3 +35,60 @@
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Class to hide on print */
+.hidden-on-print {
+  display: block;
+}
+@media print {
+  * {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .hidden-on-print {
+    display: none !important;
+  }
+
+  #root {
+    width: 100%;
+    height: 100%;
+    overflow: visible !important;
+  }
+
+  /* Show all print content */
+  #printable-area {
+    width: 100%;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: white !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+  }
+
+  /* Each A4 page */
+  #printable-area > div {
+    width: 210mm !important;
+    height: 297mm !important;
+    padding: 5mm !important;
+    margin: 0 !important;
+    page-break-after: always;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+    background: white !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  /* Print page settings */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}
