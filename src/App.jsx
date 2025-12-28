@@ -14,8 +14,14 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { templates } from "@/components/IDCardTemplates"
-import { ApacheIDCardProbation } from "@/components/ApacheIDCard"
+import { ApacheIDCardProbation } from "@/components/card-template/ApacheIDCardProbation"
 import { DataImportSection } from "@/components/DataImportSection"
+import { EmployeeManagementModal } from "@/components/EmployeeManagementModal"
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable"
 
 const MOCK_EMPLOYEES = [
   {
@@ -115,6 +121,7 @@ export function App() {
   const [selectedEmployeeIndex, setSelectedEmployeeIndex] = useState(0)
   const [employeesList, setEmployeesList] = useState(MOCK_EMPLOYEES)
   const [photoMap, setPhotoMap] = useState({})
+  const [isManagementModalOpen, setIsManagementModalOpen] = useState(false)
 
   const employeeData = employeesList[selectedEmployeeIndex]
   const TemplateComponent = selectedTemplate.component
@@ -218,15 +225,23 @@ export function App() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <ResizablePanelGroup direction="vertical" className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Templates */}
-        <div className="hidden-on-print w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-bold text-gray-800">Templates</h2>
-            <p className="text-sm text-gray-500 mt-1">Choose a template for your ID card</p>
-          </div>
+        <ResizablePanel minSize={320} maxSize={620} defaultSize={400} className="hidden-on-print w-80 bg-white border-r border-gray-200 flex flex-col shadow-sm" id="sidebar-panel">
 
-          <ScrollArea className="flex-1 p-4">
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-3">
+            {/* Management Button */}
+            <Button
+              onClick={() => setIsManagementModalOpen(true)}
+              className="w-full bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2 rounded-lg transition-all shadow-md hover:shadow-lg mb-4"
+            >
+              <svg className="w-5 h-5 mr-2 inline" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10.5 1.5H3.75A2.25 2.25 0 001.5 3.75v12.5A2.25 2.25 0 003.75 18.5h12.5a2.25 2.25 0 002.25-2.25V9.5M10.5 1.5v4M10.5 1.5L19.5 10.5M10.5 5.5h4M4 11.5h8M4 14.5h6" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              </svg>
+              Quản Lý Nhân Viên
+            </Button>
+
             {/* Import Section */}
             <div className="mb-6 pb-6 border-b border-gray-200">
               <DataImportSection
@@ -380,16 +395,17 @@ export function App() {
                 </div>
               </div>
             </div>
+            </div>
           </ScrollArea>
-        </div>
-
+        </ResizablePanel>
+        <ResizableHandle withHandle={true} className={"outline-0 w-px"} id="divider-panel" />
         {/* Right Side - Preview */}
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-gray-100 to-gray-200">
-          <div className="p-6 border-b border-gray-300 bg-white/50 backdrop-blur-sm hidden-on-print">
+        <ResizablePanel className="flex-1 flex flex-col bg-linear-to-br from-gray-100 to-gray-200">
+          <div className="p-2 border-b border-gray-300 bg-white/50 backdrop-blur-sm hidden-on-print">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-800">A4 Preview</h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <h2 className="text-sm font-bold text-gray-800">A4 Preview</h2>
+                <p className="text-xs text-gray-600">
                   4 ID Cards (Front & Back) - Optimized for A4 printing
                 </p>
               </div>
@@ -411,10 +427,10 @@ export function App() {
           </div>
 
           {/* A4 Preview Area */}
-          <div className="flex-1 overflow-auto bg-gray-300" id="a4-preview-container">
+          <div className="flex-1 overflow-auto bg-[#eaedee]" id="a4-preview-container">
             {/* Multiple A4 Pages */}
-            <div className="flex justify-center py-8 w-full">
-            <div className="flex flex-col gap-8" id="printable-area">
+            <div className="flex justify-center p-4 w-full">
+            <div className="flex flex-col gap-4" id="printable-area">
               {Array.from({ length: Math.ceil(employeesList.length / 4) }).map((_, pageIndex) => (
                 <div>
                   <div
@@ -425,7 +441,7 @@ export function App() {
                       padding: '16mm',
                       boxSizing: 'border-box',
                       backgroundColor: 'white',
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+                      border: '1px solid #b7b7b7',
                       display: 'flex',
                       justifyContent: 'center',
                     }}
@@ -455,9 +471,9 @@ export function App() {
           </div>
 
           {/* Footer Info */}
-          <div className="hidden-on-print p-4 bg-white/80 backdrop-blur-sm border-t border-gray-300">
+          <div className="hidden-on-print p-2 bg-white/80 backdrop-blur-sm border-t border-gray-300 text-sm">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6 text-sm text-gray-600">
+              <div className="flex items-center gap-4 text-xs text-gray-600">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">Paper:</span>
                   <span>A4 (210 × 297 mm)</span>
@@ -485,8 +501,14 @@ export function App() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+
+      {/* Employee Management Modal */}
+      <EmployeeManagementModal
+        isOpen={isManagementModalOpen}
+        onClose={() => setIsManagementModalOpen(false)}
+      />
     </div>
   )
 }
