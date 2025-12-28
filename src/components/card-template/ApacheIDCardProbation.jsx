@@ -1,6 +1,20 @@
 // Apache Employee ID Card Components
+import { useEffect, useRef } from 'react'
+import JsBarcode from 'jsbarcode'
 
 export const template = ({ employee, options }) => {
+  const barcodeRef = useRef(null)
+
+  useEffect(() => {
+    if (barcodeRef.current && (employee?.id || "0029387")) {
+      JsBarcode(barcodeRef.current, employee?.id || "0029387", {
+        format: "CODE128",
+        width: 1.5,
+        height: 25,
+        displayValue: false
+      })
+    }
+  }, [employee?.id])
 
   const _options = {
     width: '92mm',
@@ -83,7 +97,7 @@ export const template = ({ employee, options }) => {
 
         {/* Footer */}
         <div className="flex gap-2 items-end justify-between border-t border-black pt-1">
-          <div className="font-mono font-bold text-sm">{employee?.id || "0029387"}</div>
+          <svg ref={barcodeRef}></svg>
           <div className="text-[9px] text-center">
             <div className="text-[9px] font-semibold">Ngày vào</div>
             <div className="text-[9px] text-gray-600">Joined date</div>
