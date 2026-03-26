@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import ExcelJS from 'exceljs';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -27,19 +29,93 @@ import {
   UserIcon,
   Delete02Icon,
   PlusSignIcon,
+  Download01Icon,
 } from '@hugeicons/core-free-icons/index';
+import {
+  TABLE_FIELDS,
+  downloadTemplate,
+  importEmployeesFromExcel,
+  createNewEmployee,
+  VERIFICATION_SHEET_NAME,
+} from '@/lib/excelUtils';
 
 export function EmployeeManagementModal({
   isOpen,
   onClose,
   employees = [],
   onEmployeesChange,
+  onImagesChange,
 }) {
   const [activeTab, setActiveTab] = useState('employees');
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [editedEmployees, setEditedEmployees] = useState(employees);
   const [selectedEmployees, setSelectedEmployees] = useState(new Set());
+  const [images, setImages] = useState({});
+  const [imageErrors, setImageErrors] = useState([]);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const VALID_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+  const ID_PATTERN = /^\d{1,7}$/;
+
+  // Validate image files
+  const validateAndProcessImages = (files) => {
+    const errors = [];
+    const processedImages = { ...images };
+
+    for (let file of files) {
+      const nameParts = file.name.split('.');
+      const extension = nameParts[nameParts.length - 1].toLowerCase();
+      const nameWithoutExt = nameParts.slice(0, -1).join('.');
+
+      // Validate extension
+      if (!VALID_IMAGE_EXTENSIONS.includes(extension)) {
+        errors.push(`${file.name}: Định dạng không hợp lệ (chỉ nhận ${VALID_IMAGE_EXTENSIONS.join(', ')})`);
+        continue;
+      }
+
+      // Validate name (0-9, length 1-7)
+      if (!ID_PATTERN.test(nameWithoutExt)) {
+        errors.push(`${file.name}: Tên file phải là số (0-9), độ dài 1-7 chữ số`);
+        continue;
+      }
+
+      // Pad ID to 7 digits
+      const paddedID = nameWithoutExt.padStart(7, '0');
+
+      // Read image and store
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        processedImages[paddedID] = {
+          src: e.target.result,
+          name: file.name
+        };
+        setImages(processedImages);
+        if (onImagesChange) {
+          onImagesChange(processedImages);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    if (errors.length > 0) {
+      setImageErrors(errors);
+    }
+  };
+
+  const handleImageInputChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    validateAndProcessImages(files);
+  };
+
+  const handleDeleteImage = (imageKey) => {
+    const updatedImages = { ...images };
+    delete updatedImages[imageKey];
+    setImages(updatedImages);
+    if (onImagesChange) {
+      onImagesChange(updatedImages);
+    }
+  };
 
   const handleCellClick = (index, field, value) => {
     setEditingCell({ index, field });
@@ -74,16 +150,7 @@ export function EmployeeManagementModal({
   };
 
   const handleAddEmployee = () => {
-    const newEmployee = {
-      name: 'Nhân viên mới',
-      id: '',
-      position: '',
-      department: '',
-      email: '',
-      joinedDate: new Date().toLocaleDateString('vi-VN'),
-      validUntil: '',
-      photo: null,
-    };
+    const newEmployee = createNewEmployee();
     const updatedEmployees = [...editedEmployees, newEmployee];
     setEditedEmployees(updatedEmployees);
     if (onEmployeesChange) {
@@ -152,13 +219,67 @@ export function EmployeeManagementModal({
     }
   };
 
-  const tableFields = ['name', 'id', 'position', 'department', 'email', 'joinedDate'];
+  const tableFields = TABLE_FIELDS;
+
+  // Download Excel template
+  const handleDownloadTemplate = async () => {
+    await downloadTemplate();
+  };
+
+  // Import Excel file
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+
+    try {
+      // Read file with ExcelJS to verify sheet
+      const buffer = await file.arrayBuffer();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer);
+
+      // Check for verification sheet
+      const verificationSheet = workbook.worksheets.find(
+        (sheet) =>
+          sheet.name === VERIFICATION_SHEET_NAME && sheet.state === 'veryHidden'
+      );
+
+      if (!verificationSheet) {
+        toast.error('File không hợp lệ', {
+          description: 'Vui lòng sử dụng template chính thức từ hệ thống.'
+        });
+        setIsImporting(false);
+        return;
+      }
+
+      // Import employees
+      const importedEmployees = await importEmployeesFromExcel(file);
+      console.log(importedEmployees)
+      setEditedEmployees(importedEmployees);
+      if (onEmployeesChange) {
+        onEmployeesChange(importedEmployees);
+      }
+      toast.success('Nhập thành công', {
+        description: `${importedEmployees.length} nhân viên đã được nhập.`
+      });
+
+      // Reset input
+      e.target.value = '';
+    } catch (error) {
+      toast.error('Lỗi khi nhập file', {
+        description: error.message || 'Vui lòng thử lại.'
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
         closeOnClickOutside={false}
-        className='max-w-[90vw]! h-[90vh] flex flex-col p-0 w-250 gap-0'
+        className='max-w-[90vw]! h-[90vh] flex flex-col p-0 w-330 gap-0'
       >
         <DialogHeader className='p-4 border-b gap-0'>
           <DialogTitle>
@@ -181,6 +302,7 @@ export function EmployeeManagementModal({
             <TabsTrigger
               value='employees'
               className='flex items-center gap-1 bg-transparent data-[state=active]:bg-transparent shadow-none! border-b-2 border-transparent data-[state=active]:border-primary rounded-none pb-1.5 font-semibold! px-1! text-xs'
+              id="tab-employees"
             >
               <HugeiconsIcon icon={UserIcon} className='size-4' />
               <span>Danh sách</span>
@@ -188,16 +310,10 @@ export function EmployeeManagementModal({
             <TabsTrigger
               value='images'
               className='flex items-center gap-1 bg-transparent data-[state=active]:bg-transparent shadow-none! border-b-2 border-transparent data-[state=active]:border-primary rounded-none pb-1.5 font-semibold! px-1! text-xs'
+              id="tab-images"
             >
               <HugeiconsIcon icon={Image01Icon} className='size-4' />
               <span>Hình ảnh</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value='import'
-              className='flex items-center gap-1 bg-transparent data-[state=active]:bg-transparent shadow-none! border-b-2 border-transparent data-[state=active]:border-primary rounded-none pb-1.5 font-semibold! px-1! text-xs'
-            >
-              <HugeiconsIcon icon={GoogleSheetIcon} className='size-4' />
-              <span>Nhập dữ liệu</span>
             </TabsTrigger>
           </TabsList>
 
@@ -215,22 +331,27 @@ export function EmployeeManagementModal({
                         <Checkbox
                           checked={
                             selectedEmployees.size === editedEmployees.length &&
-                            editedEmployees.length > 0
+                              editedEmployees.length > 0
                               ? true
                               : selectedEmployees.size > 0
-                              ? 'indeterminate'
-                              : false
+                                ? 'indeterminate'
+                                : false
                           }
                           onCheckedChange={handleSelectAll}
                         />
                       </TableHead>
                       <TableHead className='w-12'>STT</TableHead>
-                      <TableHead>Họ tên</TableHead>
-                      <TableHead>Mã NV</TableHead>
+                      <TableHead>MSNV</TableHead>
+                      <TableHead>Họ và tên</TableHead>
+                      <TableHead>Ngày vào làm</TableHead>
                       <TableHead>Chức vụ</TableHead>
                       <TableHead>Phòng ban</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Ngày vào</TableHead>
+                      <TableHead>Phòng ban (EN)</TableHead>
+                      <TableHead>Ngày hết hạn</TableHead>
+                      <TableHead>Chức vụ (ENG)</TableHead>
+                      <TableHead>Mã xưởng</TableHead>
+                      <TableHead>Mã bộ phận trên cấp</TableHead>
+                      <TableHead>Mã bộ phận trên cấp (EN)</TableHead>
                       <TableHead className='w-12'>Xóa</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -250,6 +371,25 @@ export function EmployeeManagementModal({
                         </TableCell>
                         <TableCell className='font-medium'>
                           {index + 1}
+                        </TableCell>
+                        <TableCell
+                          className='cursor-text hover:bg-muted/50 p-2 relative'
+                          onClick={() => handleCellClick(index, 'id', emp.id)}
+                        >
+                          {editingCell?.index === index &&
+                            editingCell?.field === 'id' && (
+                              <Input
+                                autoFocus
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => handleCellBlur(index, 'id')}
+                                onKeyDown={(e) =>
+                                  handleKeyDown(e, index, 'id', tableFields)
+                                }
+                                className='h-6 px-1.5 border py-1 absolute bg-white top-1/2 left-0 right-0 -translate-y-1/2'
+                              />
+                            )}
+                          {emp.id}
                         </TableCell>
                         <TableCell
                           className='cursor-text hover:bg-muted/50 p-2 relative'
@@ -274,22 +414,24 @@ export function EmployeeManagementModal({
                         </TableCell>
                         <TableCell
                           className='cursor-text hover:bg-muted/50 p-2 relative'
-                          onClick={() => handleCellClick(index, 'id', emp.id)}
+                          onClick={() =>
+                            handleCellClick(index, 'joinedDate', emp.joinedDate)
+                          }
                         >
                           {editingCell?.index === index &&
-                            editingCell?.field === 'id' && (
+                            editingCell?.field === 'joinedDate' && (
                               <Input
                                 autoFocus
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => handleCellBlur(index, 'id')}
+                                onBlur={() => handleCellBlur(index, 'joinedDate')}
                                 onKeyDown={(e) =>
-                                  handleKeyDown(e, index, 'id', tableFields)
+                                  handleKeyDown(e, index, 'joinedDate', tableFields)
                                 }
                                 className='h-6 px-1.5 border py-1 absolute bg-white top-1/2 left-0 right-0 -translate-y-1/2'
                               />
                             )}
-                          {emp.id}
+                          {emp.joinedDate}
                         </TableCell>
                         <TableCell
                           className='cursor-text hover:bg-muted/50 p-2 relative'
@@ -346,46 +488,163 @@ export function EmployeeManagementModal({
                           {emp.department}
                         </TableCell>
                         <TableCell
-                          className='cursor-text hover:bg-muted/50 p-2 text-xs relative'
+                          className='cursor-text hover:bg-muted/50 p-2 relative'
                           onClick={() =>
-                            handleCellClick(index, 'email', emp.email)
+                            handleCellClick(index, 'departmentEn', emp.departmentEn)
                           }
                         >
                           {editingCell?.index === index &&
-                            editingCell?.field === 'email' && (
+                            editingCell?.field === 'departmentEn' && (
                               <Input
                                 autoFocus
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => handleCellBlur(index, 'email')}
+                                onBlur={() =>
+                                  handleCellBlur(index, 'departmentEn')
+                                }
                                 onKeyDown={(e) =>
-                                  handleKeyDown(e, index, 'email', tableFields)
+                                  handleKeyDown(
+                                    e,
+                                    index,
+                                    'departmentEn',
+                                    tableFields
+                                  )
                                 }
                                 className='h-6 px-1.5 border py-1 absolute bg-white top-1/2 left-0 right-0 -translate-y-1/2'
                               />
                             )}
-                          {emp.email}
+                          {emp.departmentEn}
                         </TableCell>
                         <TableCell
                           className='cursor-text hover:bg-muted/50 p-2 relative'
                           onClick={() =>
-                            handleCellClick(index, 'joinedDate', emp.joinedDate)
+                            handleCellClick(index, 'validUntil', emp.validUntil)
                           }
                         >
                           {editingCell?.index === index &&
-                            editingCell?.field === 'joinedDate' && (
+                            editingCell?.field === 'validUntil' && (
                               <Input
                                 autoFocus
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
-                                onBlur={() => handleCellBlur(index, 'joinedDate')}
+                                onBlur={() => handleCellBlur(index, 'validUntil')}
                                 onKeyDown={(e) =>
-                                  handleKeyDown(e, index, 'joinedDate', tableFields)
+                                  handleKeyDown(e, index, 'validUntil', tableFields)
                                 }
                                 className='h-6 px-1.5 border py-1 absolute bg-white top-1/2 left-0 right-0 -translate-y-1/2'
                               />
                             )}
-                          {emp.joinedDate}
+                          {emp.validUntil}
+                        </TableCell>
+                        <TableCell
+                          className='cursor-text hover:bg-muted/50 p-2 relative'
+                          onClick={() =>
+                            handleCellClick(index, 'positionEn', emp.positionEn)
+                          }
+                        >
+                          {editingCell?.index === index &&
+                            editingCell?.field === 'positionEn' && (
+                              <Input
+                                autoFocus
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => handleCellBlur(index, 'positionEn')}
+                                onKeyDown={(e) =>
+                                  handleKeyDown(
+                                    e,
+                                    index,
+                                    'positionEn',
+                                    tableFields
+                                  )
+                                }
+                                className='h-6 px-1.5 border py-1 absolute bg-white top-1/2 left-0 right-0 -translate-y-1/2'
+                              />
+                            )}
+                          {emp.positionEn}
+                        </TableCell>
+                        <TableCell
+                          className='cursor-text hover:bg-muted/50 p-2 relative'
+                          onClick={() =>
+                            handleCellClick(index, 'departmentAbbr', emp.departmentAbbr)
+                          }
+                        >
+                          {editingCell?.index === index &&
+                            editingCell?.field === 'departmentAbbr' && (
+                              <Input
+                                autoFocus
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() =>
+                                  handleCellBlur(index, 'departmentAbbr')
+                                }
+                                onKeyDown={(e) =>
+                                  handleKeyDown(
+                                    e,
+                                    index,
+                                    'departmentAbbr',
+                                    tableFields
+                                  )
+                                }
+                                className='h-6 px-1.5 border py-1 absolute bg-white top-1/2 left-0 right-0 -translate-y-1/2'
+                              />
+                            )}
+                          {emp.departmentAbbr}
+                        </TableCell>
+                        <TableCell
+                          className='cursor-text hover:bg-muted/50 p-2 relative'
+                          onClick={() =>
+                            handleCellClick(index, 'parentDepartmentCode', emp.parentDepartmentCode)
+                          }
+                        >
+                          {editingCell?.index === index &&
+                            editingCell?.field === 'parentDepartmentCode' && (
+                              <Input
+                                autoFocus
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() =>
+                                  handleCellBlur(index, 'parentDepartmentCode')
+                                }
+                                onKeyDown={(e) =>
+                                  handleKeyDown(
+                                    e,
+                                    index,
+                                    'parentDepartmentCode',
+                                    tableFields
+                                  )
+                                }
+                                className='h-6 px-1.5 border py-1 absolute bg-white top-1/2 left-0 right-0 -translate-y-1/2'
+                              />
+                            )}
+                          {emp.parentDepartmentCode}
+                        </TableCell>
+                        <TableCell
+                          className='cursor-text hover:bg-muted/50 p-2 relative'
+                          onClick={() =>
+                            handleCellClick(index, 'parentDepartmentCodeEn', emp.parentDepartmentCodeEn)
+                          }
+                        >
+                          {editingCell?.index === index &&
+                            editingCell?.field === 'parentDepartmentCodeEn' && (
+                              <Input
+                                autoFocus
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() =>
+                                  handleCellBlur(index, 'parentDepartmentCodeEn')
+                                }
+                                onKeyDown={(e) =>
+                                  handleKeyDown(
+                                    e,
+                                    index,
+                                    'parentDepartmentCodeEn',
+                                    tableFields
+                                  )
+                                }
+                                className='h-6 px-1.5 border py-1 absolute bg-white top-1/2 left-0 right-0 -translate-y-1/2'
+                              />
+                            )}
+                          {emp.parentDepartmentCodeEn}
                         </TableCell>
                         <TableCell>
                           <Button
@@ -405,28 +664,30 @@ export function EmployeeManagementModal({
                   </TableBody>
                 </Table>
               ) : (
-                <div className='text-center text-muted-foreground h-full flex items-center justify-center text-xs'>
-                  <div className='flex flex-col items-center gap-2'>
+                <div className='text-center text-muted-foreground h-full flex items-center justify-center'>
+                  <div className='flex flex-col items-center gap-4'>
                     <div>
-                      <div className='size-10 rounded-full bg-gray-200 flex items-center justify-center'>
+                      <div className='size-12 rounded-full bg-gray-200 flex items-center justify-center'>
                         <HugeiconsIcon
                           icon={UserIcon}
                           className='size-6 mx-auto'
                         />
                       </div>
                     </div>
-                    <p>Chưa có nhân viên nào</p>
                     <div>
-                      <Button
-                        className='flex-1 h-6 px-2 flex items-center'
-                        onClick={handleAddEmployee}
-                      >
-                        <HugeiconsIcon
-                          icon={PlusSignIcon}
-                          className='w-4 h-4 mr-0.5'
-                        />
-                        Thêm nhân viên mới
-                      </Button>
+                      <p className='font-medium'>Chưa có nhân viên nào</p>
+                      <div>
+                        <Button
+                          className='flex-1 h-6 px-2 flex items-center'
+                          onClick={handleAddEmployee}
+                        >
+                          <HugeiconsIcon
+                            icon={PlusSignIcon}
+                            className='w-4 h-4 mr-0.5'
+                          />
+                          Thêm nhân viên mới
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -437,6 +698,7 @@ export function EmployeeManagementModal({
                 <Button
                   className='flex-1 h-6 px-2 flex items-center'
                   onClick={handleAddEmployee}
+                  id="btn-add-employee"
                 >
                   <HugeiconsIcon
                     icon={PlusSignIcon}
@@ -456,11 +718,47 @@ export function EmployeeManagementModal({
                   />
                   Xóa ({selectedEmployees.size})
                 </Button>
+                <div className='h-6 w-px bg-gray-300 mx-1'></div>
+                <Button
+                  className='flex-1 h-6 px-2 flex items-center'
+                  variant='outline'
+                  disabled={isImporting}
+                  onClick={() =>
+                    document.getElementById('excel-import').click()
+                  }
+                  id="btn-import-excel"
+                >
+                  <HugeiconsIcon
+                    icon={Upload01Icon}
+                    className='w-4 h-4 mr-0.5'
+                  />
+                  Nhập dữ liệu
+                </Button>
+                <Button
+                  className='flex-1 h-6 px-2 flex items-center'
+                  variant='outline'
+                  onClick={handleDownloadTemplate}
+                  id="btn-download-template"
+                >
+                  <HugeiconsIcon
+                    icon={Download01Icon}
+                    className='w-4 h-4 mr-0.5'
+                  />
+                  Tải template
+                </Button>
               </div>
-              <div className='text-xs'>
+              <div className='text-xs flex items-center'>
                 Dữ liệu: {editedEmployees.length} nhân viên
               </div>
             </div>
+
+            <input
+              type='file'
+              accept='.xlsx'
+              id='excel-import'
+              className='hidden'
+              onChange={handleImportFile}
+            />
           </TabsContent>
 
           {/* Tab: Hình ảnh Nhân viên */}
@@ -468,98 +766,99 @@ export function EmployeeManagementModal({
             value='images'
             className='flex-1 flex flex-col overflow-hidden'
           >
+            {imageErrors.length > 0 && (
+              <div className='mb-4 p-3 rounded-md bg-red-50 border border-red-200'>
+                <p className='text-sm font-semibold text-red-800 mb-2'>Lỗi validation:</p>
+                <ul className='text-xs text-red-700 space-y-1'>
+                  {imageErrors.map((error, idx) => (
+                    <li key={idx}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className='flex-1 overflow-auto border rounded-md p-4 bg-background'>
-              <div className='text-center text-muted-foreground py-8'>
-                <p>Chưa có hình ảnh nào</p>
-              </div>
+              {Object.keys(images).length > 0 ? (
+                <div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5'>
+                  {Object.entries(images).map(([key, image]) => (
+                    <div key={key} className='relative group'>
+                      <div className='aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200'>
+                        <img
+                          src={image.src}
+                          alt={image.name}
+                          className='w-full h-full object-cover'
+                        />
+                      </div>
+                      <div className='absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 text-center truncate'>
+                        {key}
+                      </div>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        className='absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0 bg-red-500 hover:bg-red-600 text-white'
+                        onClick={() => handleDeleteImage(key)}
+                      >
+                        <HugeiconsIcon icon={Delete02Icon} className='w-4 h-4' />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className='text-center text-muted-foreground h-full flex items-center justify-center flex-col gap-4'>
+                  <div className='size-12 rounded-full bg-gray-200 flex items-center justify-center'>
+                    <HugeiconsIcon icon={Image01Icon} className='size-6' />
+                  </div>
+                  <div>
+                    <p className='font-medium'>Chưa có hình ảnh nào</p>
+                    <p className='text-xs text-muted-foreground mt-1'>
+                      Tên file phải là số (0-9), độ dài 1-7 chữ số
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className='flex gap-2 mt-4'>
-              <input
-                type='file'
-                multiple
-                accept='image/*'
-                id='image-input'
-                className='hidden'
-              />
-              <Button
-                variant='default'
-                className='flex-1'
-                onClick={() => document.getElementById('image-input').click()}
-              >
-                Chọn hình ảnh
-              </Button>
-              <Button variant='outline' className='flex-1'>
-                Xóa
-              </Button>
+
+            <input
+              type='file'
+              multiple
+              accept='.jpg,.jpeg,.png,.gif,.webp,.bmp'
+              id='image-input'
+              className='hidden'
+              onChange={handleImageInputChange}
+            />
+            <div className='flex gap-2 mt-2 justify-between'>
+              <div className='flex gap-2'>
+                <Button
+                  variant='default'
+                  className='flex-1 h-6 px-2 flex items-center'
+                  onClick={() => document.getElementById('image-input').click()}
+                  id="btn-select-images"
+                >
+                  <HugeiconsIcon icon={Upload01Icon} className='w-4 h-4 mr-2' />
+                  Chọn hình ảnh
+                </Button>
+                <Button
+                  variant='destructive'
+                  className='flex-1 h-6 px-2 flex items-center'
+                  disabled={Object.keys(images).length === 0}
+                  onClick={() => {
+                    setImages({});
+                    setImageErrors([]);
+                    if (onImagesChange) {
+                      onImagesChange({});
+                    }
+                  }}
+                >
+                  <HugeiconsIcon icon={Delete02Icon} className='w-4 h-4 mr-2' />
+                  Xóa tất cả
+                </Button>
+              </div>
+              <div className='text-xs flex items-center'>
+                Dữ liệu: {editedEmployees.length} ảnh
+              </div>
             </div>
           </TabsContent>
 
-          {/* Tab: Nhập dữ liệu */}
-          <TabsContent
-            value='import'
-            className='flex-1 flex flex-col overflow-hidden'
-          >
-            <div className='flex-1 overflow-auto space-y-4 mb-4'>
-              <div>
-                <label className='text-sm font-medium mb-2 block'>
-                  Nhập tệp Excel (.xlsx)
-                </label>
-                <input
-                  type='file'
-                  accept='.xlsx,.xls'
-                  id='excel-input'
-                  className='hidden'
-                />
-                <Button
-                  variant='outline'
-                  className='w-full'
-                  onClick={() => document.getElementById('excel-input').click()}
-                >
-                  <HugeiconsIcon icon={Upload01Icon} className='w-4 h-4 mr-2' />
-                  Chọn tệp Excel
-                </Button>
-              </div>
-
-              <div>
-                <label className='text-sm font-medium mb-2 block'>
-                  Nhập hình ảnh nhân viên
-                </label>
-                <input
-                  type='file'
-                  multiple
-                  accept='image/*'
-                  id='bulk-image-input'
-                  className='hidden'
-                />
-                <Button
-                  variant='outline'
-                  className='w-full'
-                  onClick={() =>
-                    document.getElementById('bulk-image-input').click()
-                  }
-                >
-                  <HugeiconsIcon icon={Upload01Icon} className='w-4 h-4 mr-2' />
-                  Chọn hình ảnh (nhiều tệp)
-                </Button>
-              </div>
-
-              <div className='border rounded-md p-4 bg-muted/30'>
-                <p className='text-xs text-muted-foreground'>
-                  <strong>Hướng dẫn:</strong> Tệp Excel phải chứa cột ID để ghép
-                  ảnh với nhân viên
-                </p>
-              </div>
-            </div>
-
-            <div className='flex gap-2'>
-              <Button variant='default' className='flex-1'>
-                Xử lý dữ liệu
-              </Button>
-              <Button variant='outline' className='flex-1'>
-                Hủy bỏ
-              </Button>
-            </div>
-          </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,6 @@
 // Apache Employee ID Card - Premium Official Style
 
-export const template = ({ employee, options }) => {
+export const template = ({ employee, options, images = {}, cardColor = '#ffffff' }) => {
   const _options = {
     width: '92mm',
     height: '57.94mm',
@@ -15,7 +15,12 @@ export const template = ({ employee, options }) => {
         style={{
           width: _options.width,
           height: _options.height,
-          background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
+          backgroundColor: cardColor,
+          background: cardColor !== '#ffffff' && cardColor !== '#000000' 
+            ? `linear-gradient(135deg, ${cardColor}cc 0%, ${cardColor}99 100%)`
+            : cardColor === '#000000'
+            ? 'linear-gradient(135deg, #000000 0%, #1a1a1a 100%)'
+            : cardColor
         }}
       >
         {/* Decorative elements */}
@@ -118,10 +123,11 @@ export const template = ({ employee, options }) => {
 
       {/* Back Side */}
       <div 
-        className="flex-1 flex flex-col bg-white text-slate-800 border border-slate-200"
+        className="flex-1 flex flex-col text-slate-800 border border-slate-200"
         style={{
           width: _options.width,
-          height: _options.height
+          height: _options.height,
+          backgroundColor: cardColor
         }}
       >
         <div className="h-2 bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800"></div>

@@ -1,17 +1,11 @@
 import { ApacheIDCardProbation } from "./card-template/ApacheIDCardProbation"
-import { ApacheIDCardProbationModern } from "./card-template/ApacheIDCardProbationModern"
-import { ApacheIDCardProbationElegant } from "./card-template/ApacheIDCardProbationElegant"
-import { ApacheIDCardProbationGradient } from "./card-template/ApacheIDCardProbationGradient"
-import { ApacheIDCardProbationCreative } from "./card-template/ApacheIDCardProbationCreative"
+import { ApacheIDCardProbationQR } from "./card-template/ApacheIDCardProbationQR"
 import { ApacheIDCardOfficial } from "./card-template/ApacheIDCardOfficial"
-import { ApacheIDCardOfficialPremium } from "./card-template/ApacheIDCardOfficialPremium"
+import { ApacheIDCardOfficialQR } from "./card-template/ApacheIDCardOfficialQR"
 
 export const templates = [
   ApacheIDCardProbation,
-  ApacheIDCardProbationModern,
-  ApacheIDCardProbationElegant,
-  ApacheIDCardProbationGradient,
-  ApacheIDCardProbationCreative,
+  ApacheIDCardProbationQR,
   ApacheIDCardOfficial,
-  ApacheIDCardOfficialPremium
+  ApacheIDCardOfficialQR,
 ]

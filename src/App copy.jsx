@@ -15,7 +15,6 @@ import { templates } from '@/components/IDCardTemplates';
 import { ApacheIDCardProbation } from '@/components/card-template/ApacheIDCardProbation';
 import { DataImportSection } from '@/components/DataImportSection';
 import { EmployeeManagementModal } from '@/components/EmployeeManagementModal';
-import { CardColorSelector } from '@/components/CardColorSelector';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -24,20 +23,19 @@ import {
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cursor01Icon, Database02Icon, FourFinger03Icon } from '@hugeicons/core-free-icons/index';
 import { startTour } from '@/lib/tourGuide';
-import { padEmployeeId } from '@/lib/excelUtils';
 
 const MOCK_EMPLOYEES = [
   {
     name: 'PHÙNG NGUYỄN TƯỜNG VY',
     position: 'NHÂN VIÊN',
     positionEn: 'STAFF',
-    department: 'Xưởng F',
-    departmentAbbr: 'F',
+    department: 'Production',
+    departmentAbbr: 'SX',
     departmentEn: 'Production',
-    team: 'Gia Công',
-    teamEn: 'Assembly',
+    team: 'Team A',
+    teamEn: 'Team A',
     id: '0029387',
-    validUntil: '02/07/2026',
+    validUntil: '2/7/2026',
     joinedDate: '10/12/2025',
     photo: null,
   }
@@ -55,7 +53,6 @@ export function App() {
   const [zoomLevel, setZoomLevel] = useState(100);
   const [isPanMode, setIsPanMode] = useState(false);
   const [panStart, setPanStart] = useState(null);
-  const [cardColor, setCardColor] = useState('#ffffff');
   const previewContainerRef = useRef(null);
 
   const handleZoomIn = () => {
@@ -117,8 +114,7 @@ export function App() {
     // Try to match photos to employees by ID or name
     setEmployeesList((prev) =>
       prev.map((emp) => {
-        const paddedId = padEmployeeId(emp.id);
-        const empIdLower = paddedId.toLowerCase().replace(/\s+/g, '_');
+        const empIdLower = emp.id.toLowerCase().replace(/\s+/g, '_');
         const empNameLower = emp.name.toLowerCase().replace(/\s+/g, '_');
 
         // Look for matching photo
@@ -193,7 +189,7 @@ export function App() {
 
           <div className='ml-auto flex items-center gap-3'>
             <Button
-              onClick={() => startTour({ onOpenModal: () => setIsManagementModalOpen(true), onCloseModal: () => setIsManagementModalOpen(false) })}
+              onClick={() => startTour({ onOpenModal: () => setIsManagementModalOpen(true) })}
               variant='outline'
               size='sm'
               className='text-xs'
@@ -229,7 +225,7 @@ export function App() {
               <Button
                 id='btn-management-data'
                 onClick={() => setIsManagementModalOpen(true)}
-                className='w-full bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2 rounded-lg transition-all mb-4'
+                className='w-full bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2 rounded-lg transition-all shadow-md hover:shadow-lg mb-4'
               >
 
                 <div className='flex items-start gap-1'>
@@ -238,14 +234,8 @@ export function App() {
                 </div>
               </Button>
 
-              {/* Card Color Section */}
-              <CardColorSelector
-                selectedColor={cardColor}
-                onColorChange={setCardColor}
-              />
-
               {/* Templates Section */}
-              <div className='space-y-3 overflow-hidden' id="area-templates">
+              <div className='space-y-3 overflow-hidden'>
                 <h3 className='text-sm font-bold text-gray-800 mb-3'>
                   Templates
                 </h3>
@@ -442,13 +432,12 @@ export function App() {
                             >
                               <div
                                 style={{ width: '184mm', height: '58.47mm' }}
-                                className='bg-gray-50 flex-1 overflow-hidden'
+                                className='bg-gray-50 border border-gray-200 overflow-hidden flex-1'
                               >
                                 <TemplateComponent
                                   employee={employee}
-                                  options={{ width: '92mm', height: '58.47mm' }}
+                                  options={{ width: '92mm', height: '58mm' }}
                                   images={images}
-                                  cardColor={cardColor}
                                 />
                               </div>
                             </div>

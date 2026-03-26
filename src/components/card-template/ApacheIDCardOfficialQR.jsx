@@ -1,6 +1,7 @@
 // Apache Employee ID Card Components
 import { useEffect, useRef } from "react";
 import JsBarcode from "jsbarcode";
+import { QRCodeSVG } from "qrcode.react";
 import logoImage from "@/assets/images/logo.png";
 import { padEmployeeId, removeVietnameseDiacritics } from "@/lib/excelUtils";
 
@@ -32,6 +33,7 @@ export const template = ({
   const nameWithoutDiacritics = removeVietnameseDiacritics(
     employee?.name || "",
   );
+  const ean13 = calculateEAN13(employee?.id || "0000000");
 
   useEffect(() => {
     if (barcodeRef.current && (employee?.id || "0000000")) {
@@ -103,7 +105,7 @@ export const template = ({
           </div>
           <div
             className="font-bold border-b border-solid border-black flex text-[13px] leading-3.5"
-            style={{ height: "11.11mm" }}
+            style={{ height: "5.47mm" }}
           >
             <div>
               <div
@@ -147,8 +149,13 @@ export const template = ({
                 )}
               </div>
             </div>
-            <div className="flex-1 flex flex-col leading-3 items-center justify-center font-bold border-t border-solid border-black text-[16px]">
-              {paddedId}
+            <div className="flex-1 flex flex-col leading-3 items-center justify-center font-bold border-t border-solid border-black">
+              <QRCodeSVG
+                value={ean13}
+                size={50}
+                level="L"
+                includeMargin={false}
+              />
             </div>
           </div>
           <div className="flex flex-col flex-1 border-l border-solid border-black">
@@ -182,7 +189,7 @@ export const template = ({
             </div>
             <div
               className="flex border-b border-solid border-black"
-              style={{ height: "6.61mm" }}
+              style={{ height: "10.05mm" }}
             >
               <div
                 className="flex flex-col items-center justify-center font-bold"
@@ -195,7 +202,13 @@ export const template = ({
               </div>
             </div>
             <div className="flex flex-1">
-              <div className="flex-1 flex items-center justify-center">
+              <div
+                className="flex justify-center items-center font-bold text-[16px]"
+                style={{ width: "18mm" }}
+              >
+                {paddedId}
+              </div>
+              <div className="flex-1 flex items-center justify-center border-l border-solid border-black">
                 <svg ref={barcodeRef}></svg>
               </div>
             </div>
@@ -240,7 +253,7 @@ export const template = ({
           </div>
           <div
             className="font-bold border-b border-solid border-black flex text-[13px] leading-3.5"
-            style={{ height: "11.11mm" }}
+            style={{ height: "5.47mm" }}
           >
             <div>
               <div
@@ -284,8 +297,13 @@ export const template = ({
                 )}
               </div>
             </div>
-            <div className="flex-1 flex flex-col leading-3 items-center justify-center font-bold border-t border-solid border-black text-[16px]">
-              {paddedId}
+            <div className="flex-1 flex flex-col leading-3 items-center justify-center font-bold border-t border-solid border-black">
+              <QRCodeSVG
+                value={ean13}
+                size={50}
+                level="L"
+                includeMargin={false}
+              />
             </div>
           </div>
           <div className="flex flex-col flex-1 border-l border-solid border-black">
@@ -319,7 +337,7 @@ export const template = ({
             </div>
             <div
               className="flex border-b border-solid border-black"
-              style={{ height: "6.61mm" }}
+              style={{ height: "10.05mm" }}
             >
               <div
                 className="flex flex-col items-center justify-center font-bold"
@@ -332,7 +350,13 @@ export const template = ({
               </div>
             </div>
             <div className="flex flex-1">
-              <div className="flex-1 flex items-center justify-center">
+              <div
+                className="flex justify-center items-center font-bold text-[16px]"
+                style={{ width: "18mm" }}
+              >
+                {paddedId}
+              </div>
+              <div className="flex-1 flex items-center justify-center border-l border-solid border-black">
                 <svg ref={barcodeRef2}></svg>
               </div>
             </div>
@@ -343,9 +367,9 @@ export const template = ({
   );
 };
 
-export const ApacheIDCardOfficial = {
-  id: "apache-official",
-  name: "Thẻ chính thức",
+export const ApacheIDCardOfficialQR = {
+  id: "apache-official-qr",
+  name: "Thẻ chính thức - QR",
   component: template,
   thumbnail: "💼",
 };

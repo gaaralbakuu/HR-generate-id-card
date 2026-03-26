@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import JsBarcode from 'jsbarcode'
 import logoImage from "@/assets/images/logo.png"
 import { padEmployeeId } from '@/lib/excelUtils'
+import { QRCodeSVG } from 'qrcode.react'
 
 // Function to calculate EAN13 checksum
 const calculateEAN13 = (id) => {
@@ -24,6 +25,7 @@ export const template = ({ employee, options, images = {}, cardColor = '#ffffff'
   const barcodeRef = useRef(null)
   const barcodeRef2 = useRef(null)
   const paddedId = padEmployeeId(employee?.id || "0000000")
+  const ean13 = calculateEAN13(employee?.id || "0000000")
 
   useEffect(() => {
     if (barcodeRef.current && (employee?.id || "0000000")) {
@@ -73,22 +75,26 @@ export const template = ({ employee, options, images = {}, cardColor = '#ffffff'
         }}
       >
         {/* Header */}
-        <div className="text-center">
-          <div className="leading-tight border-b border-solid border-black flex justify-between" style={{ height: "9.53mm" }}>
-            <div className='flex-1'>
-              <div className='size-full p-1'>
-                <img src={logoImage} className='h-full object-contain' />
+        <div className='flex'>
+          <div className="text-center">
+            <div className="leading-tight border-b border-solid border-black flex" style={{ height: "9.53mm" }}>
+              <div className=''>
+                <div className='size-full p-1'>
+                  <img src={logoImage} className='h-full object-contain' />
+                </div>
+              </div>
+              <div className='flex flex-col justify-center text-[12px] leading-3.5 tracking-tight' style={{ padding: "0mm 1mm" }}>
+                <div className='font-bold'>CÔNG TY TNHH GIÀY APACHE VIỆT NAM</div>
+                <div className='font-bold'>Apache Footwear VietNam Co., ltd</div>
               </div>
             </div>
-            <div className='flex flex-col justify-center text-[12px] leading-3.5'>
-              <div className='font-bold'>CÔNG TY TNHH GIÀY APACHE VIỆT NAM</div>
-              <div className='font-bold'>Apache Footwear VietNam Co., ltd</div>
+            <div className="font-bold border-b border-solid border-black flex flex-col justify-center text-[12px] leading-3" style={{ height: "8mm" }}>
+              <div>THẺ THỬ VIỆC</div>
+              <div className="">Probation Time</div>
             </div>
-            <div className='flex-1'></div>
           </div>
-          <div className="font-bold border-b border-solid border-black flex flex-col justify-center text-[12px] leading-3.5" style={{ height: "10.05mm" }}>
-            <div>THẺ THỬ VIỆC</div>
-            <div className="">Probation Time</div>
+          <div className='flex-1 border-l border-solid border-black border-b flex justify-center items-center'>
+            <QRCodeSVG value={ean13} size={50} level="L" includeMargin={false} />
           </div>
         </div>
 
@@ -96,7 +102,7 @@ export const template = ({ employee, options, images = {}, cardColor = '#ffffff'
           <div className='flex flex-col flex-1'>
             <div className='flex border-b border-solid border-black' style={{ height: "9.26mm" }}>
               <div className='flex flex-col items-center justify-center font-bold' style={{ width: "18mm" }}>
-                <div>Họ tên</div>
+                <div>Họ Tên</div>
                 <div>Name</div>
               </div>
               <div className='flex-1 flex justify-center items-center font-bold border-l border-solid border-black text-[13px] text-center leading-3.5'>{employee?.name}</div>
@@ -159,22 +165,26 @@ export const template = ({ employee, options, images = {}, cardColor = '#ffffff'
         }}
       >
         {/* Header */}
-        <div className="text-center">
-          <div className="leading-tight border-b border-solid border-black flex justify-between" style={{ height: "9.53mm" }}>
-            <div className='flex-1'>
-              <div className='size-full p-1'>
-                <img src={logoImage} className='h-full object-contain' />
+        <div className='flex'>
+          <div className="text-center">
+            <div className="leading-tight border-b border-solid border-black flex" style={{ height: "9.53mm" }}>
+              <div className=''>
+                <div className='size-full p-1'>
+                  <img src={logoImage} className='h-full object-contain' />
+                </div>
+              </div>
+              <div className='flex flex-col justify-center text-[12px] leading-3.5 tracking-tight' style={{ padding: "0mm 1mm" }}>
+                <div className='font-bold'>CÔNG TY TNHH GIÀY APACHE VIỆT NAM</div>
+                <div className='font-bold'>Apache Footwear VietNam Co., ltd</div>
               </div>
             </div>
-            <div className='flex flex-col justify-center text-[12px] leading-3.5'>
-              <div className='font-bold'>CÔNG TY TNHH GIÀY APACHE VIỆT NAM</div>
-              <div className='font-bold'>Apache Footwear VietNam Co., ltd</div>
+            <div className="font-bold border-b border-solid border-black flex flex-col justify-center text-[12px] leading-3" style={{ height: "8mm" }}>
+              <div>THẺ THỬ VIỆC</div>
+              <div className="">Probation Time</div>
             </div>
-            <div className='flex-1'></div>
           </div>
-          <div className="font-bold border-b border-solid border-black flex flex-col justify-center text-[12px] leading-3.5" style={{ height: "10.05mm" }}>
-            <div>THẺ THỬ VIỆC</div>
-            <div className="">Probation Time</div>
+          <div className='flex-1 border-l border-solid border-black border-b flex justify-center items-center'>
+            <QRCodeSVG value={ean13} size={50} level="L" includeMargin={false} />
           </div>
         </div>
 
@@ -202,7 +212,7 @@ export const template = ({ employee, options, images = {}, cardColor = '#ffffff'
               <div className='flex-1 flex justify-center items-center font-bold border-l border-solid border-black text-[13px] text-center'>{employee?.validUntil}</div>
             </div>
             <div className='flex flex-1'>
-              <div className='flex flex-col items-center justify-center font-bold text-[16px]' style={{ width: "18mm" }}>
+              <div className='flex flex-col items-center justify-center font-black text-[16px]' style={{ width: "18mm" }}>
                 {paddedId}
               </div>
               <div className='flex-1 border-l border-solid border-black flex items-center justify-center'>
@@ -233,9 +243,9 @@ export const template = ({ employee, options, images = {}, cardColor = '#ffffff'
   )
 }
 
-export const ApacheIDCardProbation = {
-  id: 'apache-probation',
-  name: 'Thẻ thử việc',
+export const ApacheIDCardProbationQR = {
+  id: 'apache-probation-qr',
+  name: 'Thẻ thử việc - QR',
   component: template,
   thumbnail: '🏭'
 }
